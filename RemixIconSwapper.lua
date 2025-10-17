@@ -1,4 +1,3 @@
--- 1️⃣ Spell Database
 local spellDB = {
     ["brewingstorm"] = 1258587,
     ["highmountainfortitude"] = 1234683,
@@ -14,13 +13,13 @@ local spellDB = {
     ["touchofmalice"] = 1242992,
 }
 
--- 2️⃣ Data Tables
+
 local slotsToCheck = {
-    13, -- Top trinket
-    14, -- Bottom trinket
-    11, -- Ring 1
-    12, -- Ring 2
-    2,  -- Neck
+    13,
+    14,
+    11,
+    12,
+    2,
 }
 
 local slotIdToSlotButton = {
@@ -31,7 +30,7 @@ local slotIdToSlotButton = {
     [14] = "CharacterTrinket1Slot",
 }
 
--- 3️⃣ Helper Functions
+
 local function NormalizeSpellName(line)
     if not line then return nil end
     line = line:lower():gsub("%s+",""):gsub("!$","")
@@ -78,7 +77,7 @@ local function GetItemDataFromLink(itemLink)
     return data
 end
 
--- 4️⃣ Core Logic
+
 local function ScanEquipment()
     for _, slotId in ipairs(slotsToCheck) do
         local slotButtonName = slotIdToSlotButton[slotId]
@@ -206,7 +205,7 @@ local function UpdateFrameItems()
 
         button:SetScript("OnClick", function(self, b, down)
             if b == "RightButton" then
-                EquipItemByName(itemData.link)
+                C_Item.EquipItemByName(itemData.link)
             end
         end)
 
@@ -247,14 +246,12 @@ end
 local loginEventFrame = CreateFrame("Frame")
 loginEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 loginEventFrame:SetScript("OnEvent", function(self)
-    -- Set up Bag Item Window
     UpdateFrameVisibility()
     local itemUpdateFrame = CreateFrame("Frame")
     itemUpdateFrame:RegisterEvent("BAG_UPDATE")
     itemUpdateFrame:SetScript("OnEvent", UpdateFrameItems)
     MyFrame:HookScript("OnShow", UpdateFrameItems)
 
-    -- Set up Character Sheet Scanner
     CharacterFrame:HookScript("OnUpdate", function()
         if CharacterFrame:IsVisible() then
             ScanEquipment()
