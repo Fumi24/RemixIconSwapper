@@ -1,6 +1,6 @@
 # RemixIconSwapper
 
-A small World of Warcraft addon for the Remix: Mists of Pandaria event.
+A small World of Warcraft addon for the Legion Remix
 
 ## What it does
 
