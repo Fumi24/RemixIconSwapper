@@ -1,0 +1,6 @@
+## Interface: 110002
+## Title: RemixIconSwapper
+## Notes: Swaps trinket icons with the spell from the artifact weapon
+## Author: Fumse
+## Version: 1.0
+RemixIconSwapper.lua

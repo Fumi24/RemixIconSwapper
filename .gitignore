@@ -1,0 +1,12 @@
+# IDE and OS specific files
+.vscode/
+
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
