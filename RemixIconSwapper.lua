@@ -43,27 +43,31 @@ local function NormalizeSpellName(line)
     return nil
 end
 
-local function GetSpellNameFromLink(itemLink)
+local function GetItemDataFromLink(itemLink)
     if not itemLink then return nil end
     local tooltip = CreateFrame("GameTooltip", "TempTooltip", nil, "GameTooltipTemplate")
     tooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
     tooltip:SetHyperlink(itemLink)
     tooltip:Show()
 
-    local spellName = nil
+    local data = {}
     for i = 2, tooltip:NumLines() do
         local lineFont = _G["TempTooltipTextLeft"..i]
         if lineFont then
             local line = lineFont:GetText()
             if line then
+                local foundLevel = line:match("^Item Level (%d+)")
+                if foundLevel then
+                    data.iLevel = tonumber(foundLevel)
+                end
+
                 local marker = " additional ranks of "
                 local startPos = line:find(marker)
                 if startPos then
                     local spellStart = startPos + #marker
                     local endPos = line:find("%.", spellStart)
                     if endPos then
-                        spellName = line:sub(spellStart, endPos - 1)
-                        break
+                        data.spellName = line:sub(spellStart, endPos - 1)
                     end
                 end
             end
@@ -71,11 +75,10 @@ local function GetSpellNameFromLink(itemLink)
     end
 
     tooltip:Hide()
-    return spellName
+    return data
 end
 
 -- 4️⃣ Core Logic
--- Scanner for equipped items on the character sheet
 local function ScanEquipment()
     for _, slotId in ipairs(slotsToCheck) do
         local slotButtonName = slotIdToSlotButton[slotId]
@@ -83,10 +86,10 @@ local function ScanEquipment()
         local icon = slotButton and slotButton.icon
         if icon then
             local itemLink = GetInventoryItemLink("player", slotId)
-            local spellName = GetSpellNameFromLink(itemLink)
+            local itemData = GetItemDataFromLink(itemLink)
             local replaced = false
-            if spellName then
-                local normName = NormalizeSpellName(spellName)
+            if itemData and itemData.spellName then
+                local normName = NormalizeSpellName(itemData.spellName)
                 if normName then
                     local spellID = spellDB[normName]
                     if spellID then
@@ -112,16 +115,15 @@ local function ScanEquipment()
     end
 end
 
--- UI Frame for bag items
 local MyFrame = CreateFrame("Frame", "RemixIconSwapperFrame", UIParent, "BasicFrameTemplate")
-MyFrame:SetSize(184, 430)
+MyFrame:SetSize(274, 200)
 MyFrame:SetPoint("CENTER")
 MyFrame:SetMovable(true)
 MyFrame:EnableMouse(true)
 MyFrame:RegisterForDrag("LeftButton")
 MyFrame:SetScript("OnDragStart", MyFrame.StartMoving)
 MyFrame:SetScript("OnDragStop", MyFrame.StopMovingOrSizing)
-MyFrame.TitleText:SetText("Remix Items")
+MyFrame.TitleText:SetText("Remix Spell Items")
 MyFrame:Hide()
 
 local contentFrame = CreateFrame("Frame", nil, MyFrame)
@@ -143,12 +145,12 @@ local function UpdateFrameItems()
                 if itemLink then
                     local _, _, _, _, _, _, _, _, itemEquipLoc = GetItemInfo(itemLink)
                     if itemEquipLoc == "INVTYPE_TRINKET" or itemEquipLoc == "INVTYPE_FINGER" or itemEquipLoc == "INVTYPE_NECK" then
-                        local spellName = GetSpellNameFromLink(itemLink)
-                        if spellName then
-                            local normName = NormalizeSpellName(spellName)
+                        local itemData = GetItemDataFromLink(itemLink)
+                        if itemData and itemData.spellName then
+                            local normName = NormalizeSpellName(itemData.spellName)
                             local spellID = spellDB[normName]
                             if spellID then
-                                table.insert(itemsToShow, {link = itemLink, spellID = spellID})
+                                table.insert(itemsToShow, {link = itemLink, spellID = spellID, iLevel = itemData.iLevel})
                             end
                         end
                     end
@@ -171,6 +173,9 @@ local function UpdateFrameItems()
             local icon = button:CreateTexture(nil, "ARTWORK")
             icon:SetAllPoints(button)
             button.icon = icon
+            local text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            text:SetPoint("CENTER", 0, 0)
+            button.itemLevelText = text
         end
         button:Show()
 
@@ -183,6 +188,13 @@ local function UpdateFrameItems()
             button.icon:SetTexture(textureId)
         end
         
+        if itemData.iLevel then
+            button.itemLevelText:SetText(itemData.iLevel)
+            button.itemLevelText:Show()
+        else
+            button.itemLevelText:Hide()
+        end
+
         button:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetHyperlink(itemData.link)
@@ -194,7 +206,7 @@ local function UpdateFrameItems()
 
         button:SetScript("OnClick", function(self, b, down)
             if b == "RightButton" then
-                C_Item.EquipItemByName(itemData.link)
+                EquipItemByName(itemData.link)
             end
         end)
 
@@ -235,14 +247,14 @@ end
 local loginEventFrame = CreateFrame("Frame")
 loginEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 loginEventFrame:SetScript("OnEvent", function(self)
-    -- Set up bag item window
+    -- Set up Bag Item Window
     UpdateFrameVisibility()
     local itemUpdateFrame = CreateFrame("Frame")
     itemUpdateFrame:RegisterEvent("BAG_UPDATE")
     itemUpdateFrame:SetScript("OnEvent", UpdateFrameItems)
     MyFrame:HookScript("OnShow", UpdateFrameItems)
 
-    -- Set up character sheet scanner
+    -- Set up Character Sheet Scanner
     CharacterFrame:HookScript("OnUpdate", function()
         if CharacterFrame:IsVisible() then
             ScanEquipment()
